@@ -1,0 +1,153 @@
+# Ana Strateji - 6. Parca
+# Reward System & Anti-FOMO
+
+reward_system:
+  philosophy:
+    - "Good decision + good result → high reward"
+    - "Good decision + bad result → low penalty"
+    - "Bad decision + good result → low reward"
+    - "Bad decision + bad result → heavy penalty"
+  range:
+    min: -200
+    max: +200
+    categories:
+      excellent: +150_to_+200
+      good: +80_to_+150
+      acceptable: +30_to_+80
+      neutral: -30_to_+30
+      acceptable_loss: -30_to_-80
+      bad: -80_to_-150
+      terrible: -150_to_-200
+
+win_rewards:
+  excellent_win:
+    conditions: {setup_score: "80+", profit: ">=2%", execution: "Perfect"}
+    base_reward: +200
+    message: "Perfect execution! Premium setup"
+  good_win:
+    conditions: {setup_score: "65-79", profit: ">=1.5%"}
+    base_reward: +150
+    message: "Good trade! Reliable setup"
+  acceptable_win:
+    conditions: {setup_score: "50-64", profit: ">=1%"}
+    base_reward: +100
+    message: "Medium setup worked"
+  weak_win:
+    conditions: {setup_score: "40-49", profit: ">=0.5%"}
+    base_reward: +50
+    message: "Lucky win from weak setup"
+
+loss_penalties:
+  acceptable_loss:
+    setup_score: "80+"
+    penalty: -50
+    message: "Excellent setup, bad luck"
+  normal_loss:
+    setup_score: "65-79"
+    penalty: -80
+    message: "Normal loss"
+  weak_setup_loss:
+    setup_score: "50-64"
+    penalty: -120
+    message: "Weak setup led to loss"
+  bad_setup_loss:
+    setup_score: "40-49"
+    penalty: -180
+    message: "Should not have taken this trade"
+  terrible_loss:
+    setup_score: "<40"
+    penalty: -200
+    message: "Violated minimum standards"
+
+special_adjustments:
+  bonuses:
+    perfect_execution: {bonus: +50, conditions: ["score 85+", "perfect timing"], message: "Flawless execution"}
+    patience_rewarded: {bonus: +30, conditions: ["waited full setup"], message: "Patience paid off"}
+    risk_discipline: {bonus: +20, conditions: ["correct SL", "good TP"], message: "Excellent risk management"}
+    kademeli_exit: {bonus: +15, conditions: ["TP1, TP2, TP3 used"], message: "Optimal exit strategy"}
+  penalties:
+    fomo_trade: {penalty: -100, message: "FOMO detected"}
+    revenge_trade: {penalty: -80, message: "Revenge trading"}
+    over_risk: {penalty: -50, message: "Risk > 2.5%"}
+    overtrading: {penalty: -40, message: "Too many trades"}
+    poor_timing: {penalty: -30, message: "Late or old setup"}
+
+calculation_logic:
+  steps:
+    - "Base reward from win/loss"
+    - "Add bonuses if profit > 0"
+    - "Subtract penalties if detected"
+    - "Clip total between -200 and +200"
+  example_outcomes:
+    perfect_trade: {setup: 87, pnl: +3.2, final: +200}
+    good_but_fomo: {setup: 72, pnl: +1.8, final: +20}
+    unlucky_loss: {setup: 85, pnl: -0.6, final: -20}
+    revenge_loss: {setup: 48, pnl: -1.5, final: -200}
+
+anti_fomo_system:
+  rules:
+    missing_conditions:
+      check: "Are all PA conditions met?"
+      penalty: -150
+      action: "BLOCK TRADE"
+      message: "Setup incomplete - FOMO detected"
+    price_chasing:
+      threshold: ">3% from zone"
+      penalty: -180
+      action: "BLOCK TRADE"
+      message: "Chasing price - wait for next"
+    skipped_fibonacci:
+      check: "Price retested 0.705/0.618?"
+      penalty: -120
+      action: "BLOCK TRADE"
+      message: "No fib retest - setup invalid"
+    rapid_entry:
+      check: "Time since last trade <15m"
+      penalty: -100
+      action: "FORCE COOLDOWN"
+      message: "Too fast - cooldown active"
+    volatility_spike:
+      check: "ATR doubled"
+      penalty: -130
+      action: "BLOCK TRADE"
+      message: "Wait for volatility to settle"
+    social_fomo:
+      check: "Following others' trades"
+      penalty: -90
+      action: "IGNORE SIGNAL"
+      message: "Their trade is not your trade"
+
+fomo_detection_logic:
+  checks:
+    - "Setup completion (zone + ChoCH + fib)"
+    - "Price distance >3%"
+    - "Time since last trade <15 min"
+    - "Patience level <0.3"
+    - "ATR change >100%"
+  scoring:
+    low: 0-30
+    medium: 30-60
+    high: 60+
+  decision:
+    - "FOMO score >=50 → BLOCK TRADE"
+    - "FOMO score <50 → ALLOW"
+
+examples:
+  classic_fomo:
+    setup_complete: false
+    price_distance: 3%
+    patience: 0.2
+    result: "BLOCKED (price chasing + setup incomplete)"
+  patient_entry:
+    setup_complete: true
+    price_distance: 0.3%
+    patience: 0.8
+    result: "ALLOWED (perfect setup, patience rewarded)"
+
+summary:
+  - "Reward range: -200 to +200"
+  - "Win scenarios: Excellent–Weak"
+  - "Loss scenarios: Acceptable–Terrible"
+  - "Bonuses & penalties integrated"
+  - "Anti-FOMO: 6 detection rules + prevention"
+  - "RL learns behavior reward mapping"
