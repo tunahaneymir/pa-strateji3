@@ -1,0 +1,119 @@
+# Ana Strateji - 4. Parca
+# RL Architecture & Setup Scoring
+
+rl_architecture:
+  algorithm: "PPO (Proximal Policy Optimization)"
+  reason:
+    - "Stabil ogrenme"
+    - "Trading icin uygun"
+    - "Asiri degisimleri sinirlar"
+    - "Risk yonetimiyle uyumlu"
+  state_space:
+    categories:
+      pa_signals: ["zone_quality", "zone_thickness", "zone_touch_count", "zone_age_days", "choch_strength", "fib_level"]
+      market_context: ["trend_strength", "atr_percent", "volume_ratio", "market_regime", "time_of_day", "day_of_week"]
+      performance: ["pattern_win_rate", "zone_win_rate", "recent_trades", "consecutive_wins", "consecutive_losses", "coin_performance"]
+      risk_metrics: ["current_drawdown", "daily_risk_used", "open_positions_count", "open_positions_risk", "correlation_exposure"]
+      psychological: ["confidence_level", "stress_level", "patience_level", "time_since_last_trade"]
+      setup_quality: ["overall_score", "is_re_entry", "re_entry_attempt"]
+    total_features: 40
+  action_space:
+    ENTER_FULL:
+      description: "Full risk (2%) trade al"
+      conditions: "Setup score >=80, tum gate'ler pass"
+    ENTER_REDUCED:
+      description: "Reduced risk (1–1.5%) trade al"
+      conditions: "Setup score 50–79, medium confidence"
+    SKIP:
+      description: "Setup zayif, atla"
+      conditions: "Score <50 veya stress yuksek"
+    WAIT:
+      description: "Kosullar tamamlanmamis, bekle"
+      conditions: "Incomplete setup veya unstable market"
+  reward_system:
+    win_good_setup: "+150–200"
+    win_bad_setup: "+50–100"
+    loss_good_setup: "-50–80"
+    loss_bad_setup: "-150–200"
+    fomo_revenge_penalty: "-80–100"
+  objective: "RL ogrenir: Hangi durumda hangi aksiyon max reward getirir"
+
+setup_quality_scoring:
+  purpose: "Her setup'a 0–100 puan vererek objektif kalite olcumu"
+  components:
+    zone_quality:
+      weight: 30
+      scoring: {10:30,9:27,8:24,7:20,6:16,5:12,4:8,"<4":0}
+    choch_strength:
+      weight: 20
+      scoring: {"0.9+":20,"0.8-0.9":17,"0.7-0.8":14,"0.6-0.7":11,"0.5-0.6":8,"0.4-0.5":5,"<0.4":0}
+    volume:
+      weight: 15
+      scoring: {"2x+":15,"1.5x":12,"1.2x":8,"normal":5,"low":0}
+    fibonacci:
+      weight: 10
+      scoring: {"0.705":10,"0.618":7,"other":0}
+    market_conditions:
+      weight: 15
+      scoring: {"trending_strong":15,"trending_moderate":12,"neutral":8,"sideways":3,"choppy":0}
+    timing:
+      weight: 10
+      scoring: {"perfect":10,"good":7,"late":3,"too_late":0}
+  thresholds:
+    minimum: 40
+    recommended: 65
+    excellent: 80
+  examples:
+    excellent:
+      total: 87
+      rating: "EXCELLENT"
+      action: "ENTER_FULL (2%)"
+    good:
+      total: 68
+      rating: "GOOD"
+      action: "ENTER_FULL veya REDUCED"
+    weak:
+      total: 43
+      rating: "WEAK"
+      action: "ENTER_REDUCED veya SKIP"
+    poor:
+      total: 28
+      rating: "POOR"
+      action: "AUTO-REJECT"
+
+gate_system:
+  description: "Her trade 4 gate'ten gecer"
+  structure:
+    gate_1: "Mandatory checks (Zone, ChoCH, Fib, Trend, Stop, RR)"
+    gate_2: "Setup Quality (score>=40, zone>=4, choch>=0.4)"
+    gate_3: "Risk Limits (daily<6%, total<8%, correlation<2, same_dir<3)"
+    gate_4: "Psychological (No FOMO, No revenge, No overtrade, Emotional OK)"
+  examples:
+    complete_validation:
+      coin: "BTCUSDT"
+      zone_quality: 8
+      choch_strength: 0.75
+      fib_level: 0.705
+      entry: 50050
+      stop: 49750
+      tp1: 50500
+      results:
+        gate1: "PASSED"
+        gate2: "PASSED (Score 85)"
+        gate3: "PASSED (Risk OK)"
+        gate4: "PASSED (Emotional OK)"
+        final: "APPROVED – Ready for RL decision"
+  summary:
+    - "Gate 1: Mandatory setup kontrolu"
+    - "Gate 2: Quality Score (>=40)"
+    - "Gate 3: Risk sinirlari"
+    - "Gate 4: Psikolojik filtreler"
+    - "Tum kapilar gecer → RL karari uygulanir"
+
+summary:
+  - "RL Architecture: PPO tabanli, 40-feature state space"
+  - "Action space: ENTER_FULL, ENTER_REDUCED, SKIP, WAIT"
+  - "Reward function: Trade sonucu + davranis odulu"
+  - "Setup scoring: 6 ana bileşen, 0–100 puan"
+  - "Gate system: 4 katmanli guvenlik ve kalite kontrol"
+  - "Tam sistem: Trend–Zone–Entry–Exit–RL baglanti zinciri tamamlandi"
