@@ -1,0 +1,159 @@
+# Ana Strateji - 5. Parca
+# Risk Management System
+
+position_sizing:
+  base_risk_config:
+    standard_risk: 2.0
+    reduced_risk: 1.0
+    aggressive_risk: 2.5
+    learning_risk: 0.5
+  formula: "Position Size = (Balance * Risk%) / (Entry - Stop)"
+  example:
+    balance: 10000
+    risk_percent: 2
+    entry: 50000
+    stop: 49500
+    result:
+      risk_amount: 200
+      price_risk: 500
+      position_size: 0.4
+
+adaptive_multipliers:
+  setup_quality:
+    "80+": 1.25
+    "65-79": 1.0
+    "50-64": 0.75
+    "40-49": 0.5
+  performance:
+    "win_rate_70+": 1.1
+    "win_rate_60-70": 1.0
+    "win_rate_50-60": 0.9
+    "win_rate_40-50": 0.7
+    "win_rate_<40": 0.5
+  streak:
+    "3+_wins": 1.1
+    "1-2_wins": 1.0
+    "1_loss": 0.9
+    "2_losses": 0.6
+    "3+_losses": 0.4
+  volatility:
+    "atr_>10%": 0.7
+    "atr_8-10%": 0.8
+    "atr_5-8%": 1.0
+    "atr_3-5%": 1.1
+    "atr_<3%": 1.2
+  drawdown:
+    "0-3%": 1.0
+    "3-5%": 0.9
+    "5-8%": 0.7
+    "8-10%": 0.5
+    ">10%": 0.3
+  final_risk:
+    min: 0.5
+    max: 2.5
+  description: "5 faktor kombinasyonu ile risk otomatik ayarlanir"
+
+examples:
+  excellent:
+    quality_score: 85
+    win_rate: 0.68
+    losses: 0
+    atr: 5.5
+    drawdown: 2
+    total_risk: 2.5
+    position: 0.5
+    status: "Aggressive (excellent setup)"
+  good:
+    quality_score: 68
+    win_rate: 0.52
+    losses: 2
+    atr: 6.0
+    drawdown: 4.5
+    total_risk: 1.0
+    position: 0.2
+    status: "Reduced (recent losses)"
+  weak:
+    quality_score: 45
+    win_rate: 0.45
+    losses: 1
+    atr: 8.5
+    drawdown: 9
+    total_risk: 0.5
+    position: 0.1
+    status: "Minimal (recovery mode)"
+
+risk_limits:
+  per_trade:
+    max: 2.5
+    min: 0.5
+    normal: 2.0
+    levels:
+      aggressive: {risk: 2.5, when: "Setup 80+", frequency: "10-15%"}
+      normal: {risk: 2.0, when: "Setup 65+", frequency: "60-70%"}
+      reduced: {risk: 1.0-1.5, when: "Setup 50-64", frequency: "20-25%"}
+      minimal: {risk: 0.5, when: "Learning", frequency: "5%"}
+  daily:
+    max_daily_risk: 6.0
+    max_daily_loss: 6.0
+    max_trades_per_day: 5
+    max_trades_per_coin: 2
+    max_losses_per_day: 3
+    reset_time: "00:00 UTC"
+  portfolio:
+    max_total_open_risk: 8.0
+    max_open_positions: 4
+    max_same_direction: 3
+    max_correlated: 2
+    single_position_max: 40
+    example:
+      balance: 10000
+      max_position_value: 4000
+      max_position_size: "4000/50000 = 0.08 BTC"
+
+correlation_control:
+  correlation_matrix:
+    high:
+      BTC-ETH: 0.85
+      BTC-SOL: 0.78
+      BTC-AVAX: 0.76
+      ETH-SOL: 0.72
+      ETH-AVAX: 0.70
+    medium:
+      BTC-ADA: 0.65
+      ETH-MATIC: 0.62
+      SOL-AVAX: 0.68
+    low:
+      BTC-XRP: 0.45
+      BTC-DOGE: 0.40
+      ETH-XRP: 0.38
+  correlation_rules:
+    max_high_corr_pairs: 2
+    risk_reduction:
+      high_corr: 0.5
+      medium_corr: 0.7
+      low_corr: 1.0
+  examples:
+    example_1:
+      open_positions: ["BTCUSDT (2%)"]
+      new_trade: "ETHUSDT (2%)"
+      correlation: 0.85
+      risk_adjustment: "0.5x"
+      result: "Allowed, adjusted to 1% risk"
+    example_2:
+      open_positions: ["BTCUSDT (2%)", "ETHUSDT (1%)"]
+      new_trade: "SOLUSDT (2%)"
+      correlation: "BTC-SOL 0.78, ETH-SOL 0.72"
+      result: "Rejected (2 correlated positions)"
+    example_3:
+      open_positions: ["BTCUSDT (2%)"]
+      new_trade: "XRPUSDT (2%)"
+      correlation: 0.45
+      result: "Allowed, no reduction"
+
+summary:
+  - "Position sizing: Balance * Risk% / Price Risk"
+  - "Adaptive multipliers: 5 faktor (quality, performance, streak, vol, drawdown)"
+  - "Risk range: 0.5%–2.5%"
+  - "Daily limits: 6% max risk, 5 trades, 3 losses"
+  - "Portfolio: 8% max open risk, 4 positions, 40% max allocation"
+  - "Correlation control: max 2 correlated pairs, 50% risk cut for high corr"
