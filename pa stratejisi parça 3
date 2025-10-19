@@ -1,0 +1,209 @@
+# Ana Strateji - 3. Parca
+# PA Adaptive & Re-entry System
+
+re_entry_system:
+  definition: "Stop loss sonrasi ayni zone'da yeni deneme"
+  purpose: 
+    - "False breakout sonrasi guclu bounce yakalamak"
+    - "RL ogrenerek hangi zone'larda re-entry basarili belirlemek"
+  config:
+    enabled: true
+    wait_candles: 2       # 30 dk (15M)
+    risk_reduction: 0.5   # Yarim risk
+    max_attempts: 2       # Zone basina en fazla 2 deneme
+    require_new_choch: true
+    require_new_fib: true
+  conditions:
+    - "Son trade stop loss olmus olmali"
+    - "En az 2 mum beklenmeli"
+    - "Zone body close ile kirilmamis olmali"
+    - "Yeni ChoCH olusmali (>=0.4 strength)"
+    - "Yeni Fibonacci retest yapilmali"
+    - "Toplam deneme sayisi < 3 olmali"
+  risk_policy:
+    first_trade: "2% risk"
+    re_entry: "1% risk"
+  rl_learning:
+    data_collection:
+      track:
+        - "Zone quality vs re-entry success"
+        - "ChoCH strength vs re-entry success"
+        - "Time between attempts"
+        - "Market volatility impact"
+    insights:
+      - "Zone quality 8+ → Re-entry win %70"
+      - "BTC re-entry %65, SOL %45"
+      - "Wait time 4 mum > 2 mum performansi"
+    blacklist_learning:
+      rule: "Ayni zone 2 defa kaybettirirse blackliste ekle"
+      effect: "Benzer pattern gelecekte skip edilir"
+
+adaptive_parameters:
+  reason:
+    - "Volatiliteye ve timeframe'e gore parametreler degisken olmali"
+  base_params:
+    zigzag_depth: 12
+    zigzag_deviation: 5
+    zigzag_backstep: 2
+    swing_strength: 5
+  adapt_formula:
+    atr_multiplier:
+      ">8.0": 1.5
+      ">5.0": 1.2
+      ">3.0": 1.0
+      "<=3.0": 0.8
+    timeframe_multiplier:
+      "4h": 1.5
+      "1h": 1.0
+      "15m": 0.7
+  result_limits:
+    depth: [5, 30]
+    deviation: [2, 15]
+    strength: [3, 15]
+  examples:
+    BTC_1H:
+      atr_percent: 5.2
+      final:
+        depth: 14
+        deviation: 6
+        strength: 6
+        backstep: 2
+    SOL_15M:
+      atr_percent: 11.5
+      final:
+        depth: 13
+        deviation: 8
+        strength: 8
+        backstep: 2
+    USDC_4H:
+      atr_percent: 0.8
+      final:
+        depth: 14
+        deviation: 4
+        strength: 4
+        backstep: 2
+  rl_parameter_learning:
+    phase_1:
+      method: "Heuristic (0-2 ay)"
+      goal: "Hizli baslangic"
+    phase_2:
+      method: "Grid search (2-6 ay)"
+      tests:
+        depth: [8, 10, 12, 15, 18, 20]
+        deviation: [3, 5, 7, 10]
+        strength: [3, 5, 7, 10]
+      goal: "Coin bazli optimal parametreler"
+    phase_3:
+      method: "Full RL optimization (6+ ay)"
+      state:
+        - "Volatility"
+        - "Market regime"
+        - "Zone performance"
+        - "Coin characteristics"
+      actions:
+        - "depth ±2"
+        - "deviation ±1"
+        - "strength ±1"
+      reward:
+        - "zone_quality +20"
+        - "win_rate +50"
+        - "false_signals -30"
+      goal: "Self-optimizing parameters"
+    learning_example:
+      coin: BTCUSDT
+      timeframe: 1H
+      initial:
+        depth: 12
+        deviation: 5
+        zone_quality_avg: 6.2
+        win_rate: 0.58
+      after_6_months:
+        depth: 15
+        deviation: 6
+        zone_quality_avg: 7.1
+        win_rate: 0.64
+
+liquidity_detection:
+  definition: "Wick sweep tespiti ve stop cluster temizlenmesi"
+  concept:
+    - "Wick seviyesi sweep eder, body close gecmez"
+    - "Temizlenmis seviye artik destek/direnc olur"
+  usage: "TP2 hedef belirlemede kullanilir"
+  detection_logic:
+    long_condition: "Wick < level ve close > level"
+    short_condition: "Wick > level ve close < level"
+  tp2_logic:
+    - "Son 50 mumdaki wick'leri tara"
+    - "En yakin ve en guclu wick seviyesini sec"
+    - "RR ve wick strength kombinasyonuna gore secim yap"
+  example:
+    entry: 50050
+    liquidity_levels: [51200, 51900, 52000]
+    selected_tp2: 51900
+    reason: "En iyi RR + guclu wick sweep"
+
+complete_pa_flow:
+  steps_summary: 
+    - "STEP 1: 4H trend check (EMA20/EMA50)"
+    - "STEP 2: 1H/4H zone detection (adaptive ZigZag)"
+    - "STEP 3: Price monitoring"
+    - "STEP 4: ChoCH detection (>=0.4)"
+    - "STEP 5: Fibonacci retracement (0.705 / 0.618)"
+    - "STEP 6: 4 gates validation"
+    - "STEP 7: RL decision (enter/skip)"
+    - "STEP 8: Trade execution"
+    - "STEP 9: Trade management (TP1-TP3)"
+    - "STEP 10: Post-trade analysis (RL update)"
+  outputs:
+    - "Trade management system tamamlandi"
+    - "Zone memory ve cooldown eklendi"
+
+zone_memory_system:
+  purpose: "Zone performansini kaydet, ogren ve optimize et"
+  structure:
+    zone_info:
+      coin: BTCUSDT
+      timeframe: 1H
+      range: [50000, 50100]
+      quality: 8
+    trade_history:
+      - attempt: 1
+        result: LOSS
+        pnl: -2.0
+        choch_strength: 0.65
+        fib_level: 0.705
+      - attempt: 2
+        result: WIN
+        pnl: +3.2
+        choch_strength: 0.78
+        fib_level: 0.618
+    statistics:
+      total_attempts: 2
+      wins: 1
+      losses: 1
+      win_rate: 0.50
+      avg_pnl: +0.6
+      preferred_fib: 0.618
+    rl_analysis:
+      reliability_score: 7
+      re_entry_recommended: true
+      optimal_choch_strength: 0.7
+    blacklist_conditions:
+      - "3 consecutive losses"
+      - "Win rate < 30%"
+      - "Avg PnL < -1.0%"
+      - "Zone broken structure"
+  blacklist_policy:
+    action:
+      - "Permanent blacklist for structure break"
+      - "Temporary 30d if win_rate<30%"
+      - "Temporary 60d if avg_pnl<-1%"
+      - "Permanent if 3 losses"
+  result: "Zone memory RL tarafindan surekli guncellenir"
+
+summary:
+  - "Re-entry system: 6 kosul + RL ogrenme"
+  - "Adaptive parameters: volatility & timeframe bazli"
+  - "Liquidity detection: wick sweep + TP2 hedefi"
+  - "Complete PA flow: 10 adim"
+  - "Zone memory: ogrenme, istatistik ve blacklist"
