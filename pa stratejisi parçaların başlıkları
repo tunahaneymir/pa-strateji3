@@ -1,277 +1,145 @@
-📘 PA + RL Strateji – Tüm Parçaların Ana Başlık Haritası
+PA + RL Strateji – 2025 Final Ana Başlık Haritası
 🧩 PARÇA 1 – Trend & Zone Detection
 
-Amaç: Piyasanın yönünü, yapısını ve işlem bölgelerini (zones) belirlemek.
-Kapsam: Fiyat aksiyonunun (Price Action) temel analiz motoru.
+Amaç: Piyasa yönünü ve işlem bölgelerini belirlemek.
+Kapsam: Price Action temelli trend + zone analiz motoru.
+Bölümler:
 
-Ana Başlıklar:
+architecture: 3-agent sistem (CoinSelection / RLTradingBot / RiskMoneyMgmt)
 
-architecture: 3-agent sistemin tanımı (CoinSelection, RLTradingBot, RiskMoneyMgmt)
+trend_detection: EMA20-EMA50 (4H); ATR-range ile sideways filtreleme
 
-trend_detection:
+zone_detection: ZigZag++ + Swing HL hybrid; multi-timeframe (4H-1H-15M)
 
-EMA20 / EMA50 ile 4H trend tespiti
+zone_quality: merge / overlap / touch kontrolleri + score (0–10)
 
-Uptrend / Downtrend / Sideways filtreleme
-
-Yan piyasa (sideways) kriterleri: ATR, EMA mesafesi, range %
-
-zone_detection:
-
-ZigZag++ ve Swing High/Low kombinasyonu
-
-4H–1H–15M zone üretimi
-
-Zone quality puanlama (0–10)
-
-Merge, overlap, kalınlık, temas sayısı kontrolleri
-
-RL adaptasyonu (coin bazlı threshold ayarlama)
-
-execution_flow:
-
-Trend → Zone → Filtre → Giriş hazırlığı sırası
-
-Konular: Trend yönü belirleme, zone kalitesi, sideways tespiti, RL’e veri hazırlama.
+execution_flow: Trend → Zone → Filter → Entry hazırlığı
+Konular: Trend yönü, zone kalitesi, sideways tespiti, RL veri hazırlığı.
 
 🧩 PARÇA 2 – Entry & Exit System
 
-Amaç: Doğru zaman ve fiyat seviyesinden işleme girip çıkmak.
-Kapsam: 15M mikro PA seviyesinde giriş-çıkış mantığı.
+Amaç: Doğru zamanda doğru seviyeden giriş-çıkış.
+Kapsam: 15 dakikalık mikro PA mantığı.
+Bölümler:
 
-Ana Başlıklar:
+entry_system: 4H-1H-15M senkronizasyonu
 
-entry_system: Çoklu zaman dilimi senkronizasyonu (4H–1H–15M)
+choch_detection: Change of Character tanımı (long/short)
 
-choch_detection: Change of Character (ChoCH) yapısı, long/short tanımı
+fibonacci_retracement: 0.705 / 0.618 entry
 
-fibonacci_retracement: 0.705 / 0.618 entry seviyeleri
+stop_loss: swing wick + %0.5 buffer
 
-stop_loss: Swing wick + %0.5 buffer
+take_profit: 3 kademeli TP (50-30-20 %)
 
-take_profit: 3 kademeli TP (50%–30%–20%)
+trailing_stop: ChoCH exit + dinamik SL
+Konular: Entry setup’ı, Fibonacci entry, RR hesaplama.
 
-trailing_stop: Dinamik SL güncellemesi + ChoCH exit
+🧩 PARÇA 3 – Re-entry & Adaptive Parameters & Liquidity
 
-complete_trade_flow: Gerçek bir trade örneği (entry→exit→RR)
+Amaç: Stop sonrası yeniden giriş ve değişen volatiliteye adaptasyon.
+Bölümler:
 
-Konular:
-Zamanlama, giriş koşulları, fibonacci entry, SL/TP yönetimi, RR hesaplama.
+re_entry: ChoCH + yeni Fib + 2 mum bekleme; risk yarıya indir
 
-🧩 PARÇA 3 – Re-entry, Adaptive Parameters & Liquidity
+adaptive_parameters: ATR/timeframe bazlı ZigZag-Swing ayarları
 
-Amaç: Stop sonrası yeniden giriş ve parametrelerin volatiliteye göre adaptasyonu.
+liquidity_detection: Wick sweep ve likidite hedef analizi
 
-Ana Başlıklar:
-
-re_entry_system:
-
-Re-entry koşulları (ChoCH + yeni Fib + 2 mum bekleme)
-
-Risk yarıya indirme, 2 deneme sınırı
-
-RL re-entry öğrenmesi (zone bazlı başarı oranı)
-
-adaptive_parameters:
-
-ATR ve timeframe’e göre ZigZag, Swing parametrelerini otomatik değiştirme
-
-RL optimizasyon fazları (heuristic → grid search → RL tuning)
-
-liquidity_detection:
-
-Wick sweep tespiti
-
-Stop cluster temizliği
-
-TP2 hedef seçiminde likidite seviyeleri
-
-zone_memory_system:
-
-Zone geçmiş performans kayıtları
-
-Blacklist ve güven skorları
-
-Konular:
-Adaptif parametreler, likidite okuma, RL öğrenmesiyle zone performans optimizasyonu.
+zone_memory: zone başarı geçmişi, blacklist ve confidence score
+Konular: Adaptif parametreler, likidite okuma, RL performans öğrenimi.
 
 🧩 PARÇA 4 – RL Architecture & Setup Scoring
 
-Amaç: RL motorunun nasıl düşündüğünü ve her setup’ı nasıl puanladığını tanımlamak.
+Amaç: RL motorunun karar süreci ve setup puanlaması.
+Bölümler:
 
-Ana Başlıklar:
+rl_architecture: PPO; state (40 özellik) / action (4) / reward tanımı
 
-rl_architecture:
+setup_quality: Zone-ChoCH-Volume-Fib-Market-Timing bileşenleri (0-100)
 
-PPO (Proximal Policy Optimization)
-
-State (40 özellik), Action (4 opsiyon), Reward tanımı
-
-setup_quality_scoring:
-
-6 bileşen: Zone, ChoCH, Volume, Fibonacci, Market, Timing
-
-0–100 puan aralığı
-
-Score → Action haritalaması
-
-gate_system:
-
-Gate 1: Zorunlu PA kontrolleri
-
-Gate 2: Quality score ≥ 40
-
-Gate 3: Risk limitleri
-
-Gate 4: Psikolojik filtreler
-
-Konular: RL mimarisi, davranış tabanlı karar mekanizması, kalite puanlama.
+gate_system: 4 katman (G1: PA kontrol → G4: Psikolojik filtre)
+Konular: RL mimarisi, setup kalite puanlama, gate mantığı.
 
 🧩 PARÇA 5 – Risk Management & Correlation Control
 
-Amaç: Sermayeyi korumak, pozisyon boyutunu ayarlamak, korelasyon riskini azaltmak.
+Amaç: Sermaye koruması ve pozisyon dengesi.
+Bölümler:
 
-Ana Başlıklar:
+position_sizing: risk formülü ve örnek hesap
 
-position_sizing:
+adaptive_multipliers: Setup quality / streak / volatility / drawdown
 
-Pozisyon boyutu formülü
+risk_limits: trade / günlük / portföy limitleri
 
-Gerçek örnek hesaplama
-
-adaptive_multipliers:
-
-Risk faktörleri: Setup quality, win rate, streak, volatility, drawdown
-
-Final risk 0.5%–2.5% arası
-
-risk_limits:
-
-Trade başına, günlük ve portföy limitleri
-
-Max open risk, correlated positions
-
-correlation_control:
-
-Korelasyon matrisi (BTC–ETH–SOL vb.)
-
-Risk azaltma katsayıları
-
-Konular:
-Dinamik risk yönetimi, korelasyon tabanlı portföy dengelemesi, drawdown kontrolü.
+correlation_control: BTC-ETH-SOL matrisi ile risk azaltımı
+Konular: Dinamik risk, portföy korelasyonu, drawdown yönetimi.
 
 🧩 PARÇA 6 – Reward System & Anti-FOMO
 
-Amaç: Botun davranışlarını ödül-ceza sistemiyle yönlendirmek, FOMO işlemlerini engellemek.
+Amaç: Bot davranışlarını ödül-ceza sistemiyle eğitmek.
+Bölümler:
 
-Ana Başlıklar:
+reward_engine: İyi karar → yüksek ödül; kötü karar → ceza
 
-reward_system:
+score_range: +200 ↔ -200 örnek senaryolar
 
-İyi karar + iyi sonuç = yüksek ödül
+bonus_penalty: Bonus (sabır, doğru SL) / Ceza (FOMO, revenge)
 
-Kötü karar + kötü sonuç = ağır ceza
-
-win_rewards & loss_penalties:
-
-+200’den -200’e kadar sonuç puanı
-
-Örnek ödül/ceza senaryoları
-
-special_adjustments:
-
-Bonuslar (sabır, doğru SL, kademeli TP)
-
-Cezalar (FOMO, revenge, overtrading, kötü zamanlama)
-
-anti_fomo_system:
-
-6 kural: setup eksikliği, fiyat kovalamak, fib yok, hızlı giriş, vol spike, sosyal FOMO
-
-fomo_detection_logic:
-
-FOMO puanı ≥50 → trade engellenir
-
-Konular:
-RL ödül fonksiyonu, davranış eğitimi, FOMO önleme mantığı.
+anti_fomo: 6 kural + FOMO ≥ 50 → trade iptali
+Konular: RL ödül fonksiyonu, davranış eğitimi, FOMO engeli.
 
 🧩 PARÇA 7 – Anti-Revenge & Overtrading System
 
-Amaç: Duygusal ticareti engellemek, soğuma süreleri ve işlem sınırlarını yönetmek.
+Amaç: Duygusal ticareti ve aşırı işlemleri önlemek.
+Bölümler:
 
-Ana Başlıklar:
+anti_revenge: Loss bazlı cooldown (15 dk–2 saat)
 
-anti_revenge_system:
+risk_recovery: Azalan risk, kademeli geri dönüş
 
-Loss bazlı cooldown (15m–2h)
+anti_overtrading: sıklık limitleri ve churning tespiti
 
-Risk azaltımı ve recovery fazları
+emotional_state: Confidence, Stress, Patience → risk ayarı
+Konular: Duygusal denge, soğuma, işlem disiplini.
 
-Revenge detection → trade bloklama
+🧩 PARÇA 8 – Learning & System Integration
 
-anti_overtrading_system:
+Amaç: Tüm bileşenleri öğrenen bir döngüde birleştirmek.
+Bölümler:
 
-Zaman ve sıklık limitleri
+continuous_learning_loop: data → train → analyze → optimize
 
-Kalite düşüşü ve churning tespiti
+performance_tracking: daily/weekly metric analizi
 
-emotional_state_simulation:
+adaptive_threshold_learning: win rate bazlı eşik güncelleme
 
-Confidence, Stress, Patience seviyeleri
+full_system_architecture: 3-agent veri akışı diyagramı
 
-Psikolojik değişkenlere göre risk ayarı
+learning_phases: 0–3 ay öğrenme → 3–6 optimizasyon → 6–12 ustalaşma
 
-behavioral_protection_layers:
+implementation_roadmap: 12 haftalık geliştirme planı
+Konular: Sürekli öğrenme, adaptasyon, entegrasyon.
 
-FOMO, Revenge, Overtrading, Emotional, Risk limitleri
+🧩 PARÇA 9 – System Resilience & Monitoring Layer (Final 2025)
 
-Konular:
-Duygusal denge, işlem sıklığı kontrolü, kayıp sonrası toparlanma protokolü.
+Amaç: Elektrik/internet kesintisi, veri kaybı ve insan hatalarına karşı süreklilik ve gözlem.
+Kapsam: Kayıt, kurtarma, bildirim, koruma ve analiz alt sistemleri.
+Bölümler:
 
-🧩 PARÇA 8 – Learning & Complete System Integration
+autosave & recovery: 15 dk checkpoint + event-based save + safe startup
 
-Amaç: Tüm sistemi birbirine bağlamak, sürekli öğrenme ve optimizasyonu sağlamak.
+state_persistence: bot_state / zone_memory / rl_model / trades.db dosya ayrımı
 
-Ana Başlıklar:
+safe_mode: Drawdown >%10 → risk azaltma ve paper mode
 
-continuous_learning_loop:
+indicator_learning_system: Dual (ZigZag++ + Swing) adaptif öğrenme + ZoneDetectionManager uygulaması
 
-RL’in kendi kendini eğitme döngüsü
+monitoring_and_logging: SQLite database + CSV export + CLI dashboard + Telegram kontrol
 
-Experience buffer yapısı
+protections: Circuit breaker, limit order slippage koruması, partial-fill guard, exchange maintenance, volatility guard
 
-4 aşamalı öğrenme süreci (data → training → analysis → optimization)
+backups & reports: Günlük local backup, Telegram özetleri, haftalık model yedekleri
 
-performance_tracking:
-
-Günlük/haftalık performans metrikleri
-
-Coin, timeframe, pattern bazlı analizler
-
-adaptive_threshold_learning:
-
-Win rate’e göre otomatik threshold ayarı
-
-Coin-specific optimizasyon
-
-full_system_architecture:
-
-3-agent yapının entegrasyonu
-
-Data flow diyagramı (Agent1→2→3→loop)
-
-learning_phases:
-
-0–3 ay öğrenme, 3–6 optimizasyon, 6–12 ustalaşma, 12+ özerklik
-
-performance_targets:
-
-Her faz için WR, Sharpe, DD hedefleri
-
-implementation_roadmap:
-
-12 haftalık geliştirme planı (Week 1–12)
-
-final_summary:
-
-Tüm sistemin hedefleri, felsefesi, sürdürülebilirlik prensipleri
+shadow_mode: Gerçek veri üzerinde paralel test (30 günlük tutma)
+Konular: Kendini koruyan, öğrenen, raporlayan ve minimum bakım gerektiren altyapı.
