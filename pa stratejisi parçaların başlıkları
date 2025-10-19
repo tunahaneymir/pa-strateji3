@@ -1,0 +1,277 @@
+📘 PA + RL Strateji – Tüm Parçaların Ana Başlık Haritası
+🧩 PARÇA 1 – Trend & Zone Detection
+
+Amaç: Piyasanın yönünü, yapısını ve işlem bölgelerini (zones) belirlemek.
+Kapsam: Fiyat aksiyonunun (Price Action) temel analiz motoru.
+
+Ana Başlıklar:
+
+architecture: 3-agent sistemin tanımı (CoinSelection, RLTradingBot, RiskMoneyMgmt)
+
+trend_detection:
+
+EMA20 / EMA50 ile 4H trend tespiti
+
+Uptrend / Downtrend / Sideways filtreleme
+
+Yan piyasa (sideways) kriterleri: ATR, EMA mesafesi, range %
+
+zone_detection:
+
+ZigZag++ ve Swing High/Low kombinasyonu
+
+4H–1H–15M zone üretimi
+
+Zone quality puanlama (0–10)
+
+Merge, overlap, kalınlık, temas sayısı kontrolleri
+
+RL adaptasyonu (coin bazlı threshold ayarlama)
+
+execution_flow:
+
+Trend → Zone → Filtre → Giriş hazırlığı sırası
+
+Konular: Trend yönü belirleme, zone kalitesi, sideways tespiti, RL’e veri hazırlama.
+
+🧩 PARÇA 2 – Entry & Exit System
+
+Amaç: Doğru zaman ve fiyat seviyesinden işleme girip çıkmak.
+Kapsam: 15M mikro PA seviyesinde giriş-çıkış mantığı.
+
+Ana Başlıklar:
+
+entry_system: Çoklu zaman dilimi senkronizasyonu (4H–1H–15M)
+
+choch_detection: Change of Character (ChoCH) yapısı, long/short tanımı
+
+fibonacci_retracement: 0.705 / 0.618 entry seviyeleri
+
+stop_loss: Swing wick + %0.5 buffer
+
+take_profit: 3 kademeli TP (50%–30%–20%)
+
+trailing_stop: Dinamik SL güncellemesi + ChoCH exit
+
+complete_trade_flow: Gerçek bir trade örneği (entry→exit→RR)
+
+Konular:
+Zamanlama, giriş koşulları, fibonacci entry, SL/TP yönetimi, RR hesaplama.
+
+🧩 PARÇA 3 – Re-entry, Adaptive Parameters & Liquidity
+
+Amaç: Stop sonrası yeniden giriş ve parametrelerin volatiliteye göre adaptasyonu.
+
+Ana Başlıklar:
+
+re_entry_system:
+
+Re-entry koşulları (ChoCH + yeni Fib + 2 mum bekleme)
+
+Risk yarıya indirme, 2 deneme sınırı
+
+RL re-entry öğrenmesi (zone bazlı başarı oranı)
+
+adaptive_parameters:
+
+ATR ve timeframe’e göre ZigZag, Swing parametrelerini otomatik değiştirme
+
+RL optimizasyon fazları (heuristic → grid search → RL tuning)
+
+liquidity_detection:
+
+Wick sweep tespiti
+
+Stop cluster temizliği
+
+TP2 hedef seçiminde likidite seviyeleri
+
+zone_memory_system:
+
+Zone geçmiş performans kayıtları
+
+Blacklist ve güven skorları
+
+Konular:
+Adaptif parametreler, likidite okuma, RL öğrenmesiyle zone performans optimizasyonu.
+
+🧩 PARÇA 4 – RL Architecture & Setup Scoring
+
+Amaç: RL motorunun nasıl düşündüğünü ve her setup’ı nasıl puanladığını tanımlamak.
+
+Ana Başlıklar:
+
+rl_architecture:
+
+PPO (Proximal Policy Optimization)
+
+State (40 özellik), Action (4 opsiyon), Reward tanımı
+
+setup_quality_scoring:
+
+6 bileşen: Zone, ChoCH, Volume, Fibonacci, Market, Timing
+
+0–100 puan aralığı
+
+Score → Action haritalaması
+
+gate_system:
+
+Gate 1: Zorunlu PA kontrolleri
+
+Gate 2: Quality score ≥ 40
+
+Gate 3: Risk limitleri
+
+Gate 4: Psikolojik filtreler
+
+Konular: RL mimarisi, davranış tabanlı karar mekanizması, kalite puanlama.
+
+🧩 PARÇA 5 – Risk Management & Correlation Control
+
+Amaç: Sermayeyi korumak, pozisyon boyutunu ayarlamak, korelasyon riskini azaltmak.
+
+Ana Başlıklar:
+
+position_sizing:
+
+Pozisyon boyutu formülü
+
+Gerçek örnek hesaplama
+
+adaptive_multipliers:
+
+Risk faktörleri: Setup quality, win rate, streak, volatility, drawdown
+
+Final risk 0.5%–2.5% arası
+
+risk_limits:
+
+Trade başına, günlük ve portföy limitleri
+
+Max open risk, correlated positions
+
+correlation_control:
+
+Korelasyon matrisi (BTC–ETH–SOL vb.)
+
+Risk azaltma katsayıları
+
+Konular:
+Dinamik risk yönetimi, korelasyon tabanlı portföy dengelemesi, drawdown kontrolü.
+
+🧩 PARÇA 6 – Reward System & Anti-FOMO
+
+Amaç: Botun davranışlarını ödül-ceza sistemiyle yönlendirmek, FOMO işlemlerini engellemek.
+
+Ana Başlıklar:
+
+reward_system:
+
+İyi karar + iyi sonuç = yüksek ödül
+
+Kötü karar + kötü sonuç = ağır ceza
+
+win_rewards & loss_penalties:
+
++200’den -200’e kadar sonuç puanı
+
+Örnek ödül/ceza senaryoları
+
+special_adjustments:
+
+Bonuslar (sabır, doğru SL, kademeli TP)
+
+Cezalar (FOMO, revenge, overtrading, kötü zamanlama)
+
+anti_fomo_system:
+
+6 kural: setup eksikliği, fiyat kovalamak, fib yok, hızlı giriş, vol spike, sosyal FOMO
+
+fomo_detection_logic:
+
+FOMO puanı ≥50 → trade engellenir
+
+Konular:
+RL ödül fonksiyonu, davranış eğitimi, FOMO önleme mantığı.
+
+🧩 PARÇA 7 – Anti-Revenge & Overtrading System
+
+Amaç: Duygusal ticareti engellemek, soğuma süreleri ve işlem sınırlarını yönetmek.
+
+Ana Başlıklar:
+
+anti_revenge_system:
+
+Loss bazlı cooldown (15m–2h)
+
+Risk azaltımı ve recovery fazları
+
+Revenge detection → trade bloklama
+
+anti_overtrading_system:
+
+Zaman ve sıklık limitleri
+
+Kalite düşüşü ve churning tespiti
+
+emotional_state_simulation:
+
+Confidence, Stress, Patience seviyeleri
+
+Psikolojik değişkenlere göre risk ayarı
+
+behavioral_protection_layers:
+
+FOMO, Revenge, Overtrading, Emotional, Risk limitleri
+
+Konular:
+Duygusal denge, işlem sıklığı kontrolü, kayıp sonrası toparlanma protokolü.
+
+🧩 PARÇA 8 – Learning & Complete System Integration
+
+Amaç: Tüm sistemi birbirine bağlamak, sürekli öğrenme ve optimizasyonu sağlamak.
+
+Ana Başlıklar:
+
+continuous_learning_loop:
+
+RL’in kendi kendini eğitme döngüsü
+
+Experience buffer yapısı
+
+4 aşamalı öğrenme süreci (data → training → analysis → optimization)
+
+performance_tracking:
+
+Günlük/haftalık performans metrikleri
+
+Coin, timeframe, pattern bazlı analizler
+
+adaptive_threshold_learning:
+
+Win rate’e göre otomatik threshold ayarı
+
+Coin-specific optimizasyon
+
+full_system_architecture:
+
+3-agent yapının entegrasyonu
+
+Data flow diyagramı (Agent1→2→3→loop)
+
+learning_phases:
+
+0–3 ay öğrenme, 3–6 optimizasyon, 6–12 ustalaşma, 12+ özerklik
+
+performance_targets:
+
+Her faz için WR, Sharpe, DD hedefleri
+
+implementation_roadmap:
+
+12 haftalık geliştirme planı (Week 1–12)
+
+final_summary:
+
+Tüm sistemin hedefleri, felsefesi, sürdürülebilirlik prensipleri
