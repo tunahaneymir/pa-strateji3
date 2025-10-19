@@ -1,0 +1,170 @@
+# Ana Strateji - 9. Parca
+# System Resilience & Notification Layer
+# Amaç: Elektrik/internet kesintilerine, veri kaybına ve insan hatasına karşı sistemin sürekliliğini sağlamak.
+# Ayrıca Telegram bildirimleri, otomatik kayıt ve adaptive indikatör seçimi içerir.
+
+system_resilience:
+  autosave:
+    enabled: true
+    frequency: "1h"
+    save_if_changed: true
+    save_path: "autosave/latest_state.json"
+    include:
+      - open_positions
+      - zone_memory
+      - rl_model
+      - experience_buffer
+      - adaptive_parameters
+    restore_on_restart: true
+    safe_recovery:
+      trigger_if_inactive_hours: 3
+      start_mode: "safe"       # Only analysis, no live trades
+      message: "System restored in safe mode after long downtime"
+    example:
+      last_autosave: "2025-10-19 17:00"
+      changes_detected: true
+      status: "State saved successfully"
+
+  versioning:
+    auto_version_on_changes: true
+    path: "backups/strategy_versions/"
+    naming: "version_<timestamp>.yaml"
+    backup_model_weights: true
+    backup_interval: "7d"
+
+  safe_mode:
+    enabled: true
+    triggers:
+      drawdown_percent: ">10"
+      consecutive_losses: 3
+    actions:
+      - "Switch to paper trading mode"
+      - "Reduce risk to 0.5%"
+      - "Send Telegram warning"
+    resume_condition: "Win streak >=2 or drawdown <5%"
+    example:
+      status: "Safe Mode Active"
+      reason: "Drawdown >10%"
+      next_check: "in 2h"
+
+  logging:
+    trade_log: "logs/trade_log.csv"
+    daily_summary: "logs/daily_summary.json"
+    monthly_dashboard: "logs/performance_dashboard.html"
+    content:
+      - timestamp
+      - coin
+      - direction
+      - entry
+      - stop
+      - tp_levels
+      - rr
+      - pnl
+      - reward_score
+      - behavioral_flags
+    compression: "gzip after 7 days"
+    cleanup: "rotate after 30 days"
+
+  performance_journal:
+    enabled: true
+    auto_generate_html: true
+    frequency: "daily"
+    metrics:
+      - total_trades
+      - win_rate
+      - avg_rr
+      - sharpe_ratio
+      - daily_pnl_percent
+      - behavioral_blocks
+    graph_elements:
+      - cumulative_pnl_curve
+      - win_rate_per_coin
+      - fomo_vs_patience_chart
+    save_path: "reports/daily_dashboard.html"
+
+telegram_notifications:
+  enabled: true
+  bot_token: "YOUR_TELEGRAM_BOT_TOKEN"
+  chat_id: "YOUR_CHAT_ID"
+  events:
+    - trade_open
+    - trade_close
+    - autosave_complete
+    - warning
+    - rl_training_update
+    - cooldown_triggered
+    - safe_mode_activated
+  message_templates:
+    trade_open: "🚀 New Trade: {coin} | Entry: {entry} | SL: {stop} | TP1: {tp1} | RR: {rr}"
+    trade_close: "✅ Trade Closed: {coin} | Result: {pnl}% | Reward: {reward_score}"
+    autosave_complete: "💾 State saved at {timestamp}"
+    warning: "⚠️ {reason}"
+    rl_training_update: "🧠 RL model retrained ({samples} samples)"
+    safe_mode_activated: "🛑 Safe mode activated due to {trigger}"
+
+indicator_selection:
+  strategy: "Adaptive Auto-Learning"
+  description: "Bot uses both ZigZag++ and Swing indicators, learns which performs better per coin/timeframe."
+  logic:
+    - "Run ZigZag++ and Swing High/Low in parallel"
+    - "Collect win_rate, avg_rr, and quality per coin/timeframe"
+    - "After 100+ trades, prefer the better-performing indicator"
+    - "Update preferences weekly"
+  storage: "indicators/indicator_performance.json"
+  example:
+    BTC_1H: {zigzag_wr: 0.68, swing_wr: 0.61, chosen: "ZigZag++"}
+    SOL_15M: {zigzag_wr: 0.59, swing_wr: 0.67, chosen: "Swing"}
+
+system_health_monitor:
+  enabled: true
+  check_interval: "30m"
+  checks:
+    - internet_connection
+    - api_latency
+    - binance_status
+    - cpu_usage
+    - memory_usage
+  actions:
+    if_api_fail: "pause_trading + notify"
+    if_latency_high: "reduce_frequency"
+    if_resource_overload: "pause_rl_training"
+  example:
+    last_check: "2025-10-19 17:30"
+    api_latency: "58ms"
+    internet: "OK"
+    result: "All systems healthy ✅"
+
+shadow_mode:
+  enabled: true
+  purpose: "Test new parameters on live data without executing real trades"
+  behavior:
+    - "Run parallel simulated trades (shadow agent)"
+    - "Compare performance vs main agent"
+    - "Store results for optimization"
+  retention: "30d"
+  sample_result:
+    shadow_trades: 210
+    performance_diff: "+4.5% vs live agent"
+    decision: "Keep new ZigZag params"
+
+backup_policies:
+  rl_model_backup:
+    path: "backups/models/"
+    frequency: "weekly"
+    retention: "8 weeks"
+  logs_backup:
+    path: "backups/logs/"
+    frequency: "daily"
+    retention: "14 days"
+  emergency_restore:
+    if_corruption_detected: "use_last_valid_backup"
+
+summary:
+  - "Hourly autosave protects from crashes and outages"
+  - "Safe Mode reduces risk and pauses trades on large drawdowns"
+  - "Trade logs, summaries, and dashboards ensure transparency"
+  - "Telegram notifications replace email alerts"
+  - "Adaptive indicator selection improves accuracy per coin"
+  - "Health monitor ensures uptime and stability"
+  - "Shadow mode enables safe live testing"
+  - "Weekly backups preserve models and history"
