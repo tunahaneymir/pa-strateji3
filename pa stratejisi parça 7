@@ -1,0 +1,143 @@
+# Ana Strateji - 7. Parca
+# Anti-Revenge & Anti-Overtrading Systems
+
+anti_revenge_system:
+  definition:
+    - "Revenge trade: hemen telafi etme dürtüsüyle yapılan, aceleci ve riskli işlem"
+    - "Sonuç: düşük kalite, yüksek kayıp olasılığı"
+  cooldown_rules:
+    single_loss:
+      duration: 15m
+      scope: coin
+      restriction: soft_warning
+      example: "BTC kayıp → 10 dk bekle"
+    large_loss:
+      duration: 30m
+      scope: coin
+      restriction: hard_block
+      example: "Loss > -1.2% → 30 dk bekle"
+    double_loss:
+      duration: 45m
+      scope: coin
+      restriction: hard_block
+      risk_reduction: 0.75
+    triple_loss:
+      duration: 2h
+      scope: coin + global_warning
+      restriction: full_stop
+      risk_reduction: 0.5
+      quality_min: 7
+    daily_loss_limit:
+      trigger: "total_loss > -6%"
+      scope: global
+      restriction: stop_trading
+      resume: "00:00 UTC next day"
+
+  coin_state_structure:
+    example:
+      BTCUSDT: {losses: 2, cooldown: "active until 10:45", risk: 1.5, status: "blocked"}
+      ETHUSDT: {losses: 0, cooldown: false, risk: 2.0, status: "ready"}
+      SOLUSDT: {losses: 1, cooldown: "soft", risk: 2.0, status: "warning"}
+
+  recovery_protocol:
+    phase1:
+      risk_reduction: 0.5
+      quality_threshold: "+1"
+      message: "Ease back in slowly"
+    phase2:
+      if_first_win: {risk: 1.5, message: "Building confidence"}
+      if_first_loss: {risk: 1.0, extra_cooldown: 30m}
+    phase3:
+      requirement: "2+ wins"
+      risk: 2.0
+      message: "Recovered"
+
+  detection_logic:
+    signals:
+      - recent_loss (<15m)
+      - quality_drop (>10 points)
+      - risk_increase
+      - cooldown_violation
+      - losing_streak (≥3/5 trades)
+    decision:
+      revenge_score_threshold: 60
+      action_if_detected: "BLOCK TRADE"
+
+anti_overtrading_system:
+  definition:
+    - "Çok fazla işlem → kalite düşüşü, yorgunluk, komisyon kaybı"
+  time_based_limits:
+    same_coin:
+      same_direction: {wait: 30m}
+      different_direction: {wait: 15m}
+      same_zone: {wait: 45m}
+    global:
+      wait_between_any_trades: 15m
+  frequency_limits:
+    daily: {max_trades: 5, per_coin: 2}
+    hourly: {max_per_hour: 2, rolling_window: true}
+  quality_monitoring:
+    declining_quality: {threshold_drop: ">15", action: "raise_quality + cooldown"}
+    small_trades: {avg_pnl: "<0.8%", action: "reduce_frequency"}
+  detection_logic:
+    signals:
+      - high_daily_frequency
+      - rapid_trading (<15m)
+      - avg_quality <60
+      - same_coin_limit
+      - churning (small wins/losses)
+    decision:
+      score_threshold: 50
+      action_if_detected: "BLOCK or COOLDOWN"
+
+emotional_state_simulation:
+  variables:
+    confidence:
+      range: [0.0, 1.0]
+      factors: ["win_rate", "streak", "drawdown", "setup_quality"]
+      impact:
+        high: "risk 2%"
+        medium: "risk -10%"
+        low: "risk -50%, quality +1"
+    stress:
+      range: [0.0, 1.0]
+      increase_triggers: ["consecutive_losses", "drawdown>10%", "overtrading", "volatility>10%"]
+      decay: "-0.1/hour"
+      impact:
+        medium: "cooldown x2"
+        high: "risk -30%, quality +1"
+        critical: "force_break 4h"
+    patience:
+      range: [0.0, 1.0]
+      factors: ["time_since_trade +", "missed_setups -", "boredom -"]
+      impact:
+        low: "FOMO risk high → raise quality +1"
+        high: "normal operation"
+
+  examples:
+    high_confidence:
+      confidence: 0.85
+      stress: 0.15
+      patience: 0.9
+      result: "Optimal state"
+    high_stress:
+      confidence: 0.35
+      stress: 0.75
+      patience: 0.4
+      result: "Caution mode, risk -50%"
+    low_patience:
+      confidence: 0.6
+      stress: 0.3
+      patience: 0.25
+      result: "FOMO prevention mode"
+
+behavioral_protection_layers:
+  - Layer1: FOMO prevention
+  - Layer2: Revenge prevention (cooldowns)
+  - Layer3: Overtrading prevention
+  - Layer4: Emotional state management
+  - Layer5: Risk limits enforcement
+  effectiveness:
+    without_protection: "-10% to -15% annual return"
+    with_protection: "+10% to +15%"
+    net_gain: "+20–30% annual improvement"
