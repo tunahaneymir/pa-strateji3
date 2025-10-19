@@ -1,0 +1,127 @@
+# Ana Strateji - 1. Parça
+# Hybrid Price Action + Reinforcement Learning tabanlı 3'lü Agent sistem mimarisi
+
+spec_version: 1.0
+strategy: "Hybrid Price Action + RL"
+architecture:
+  agents:
+    - name: CoinSelection
+      outputs: [symbols]
+      rules:
+        - scan_all_pairs: true
+        - liquidity_filter: true
+        - volatility_check: true
+        - select_top_n: 5-10
+
+    - name: RLTradingBot
+      modules:
+        - PA_Detection: [trend, zones, ChoCH, fibonacci, adaptive_params]
+        - ML_Decision: [setup_score, fomo_revenge_detection, 4_stage_gate, continual_learning]
+        - Execution: [entry_timing, re_entry, exit_optimization]
+      outputs: [signal, position_size]
+
+    - name: RiskMoneyMgmt
+      actions: [pos_size, stop_loss, take_profit, portfolio_risk, correlation, execute]
+
+risk_limits:
+  per_trade: 0.02     # %2
+  per_day:   0.06     # %6
+  portfolio: 0.08     # %8 açık risk
+
+timeframes: [4h, 1h, 15m]
+
+performance_targets:
+  months_0_3:  win_rate: "55-60%"
+  months_3_6:  win_rate: "60-65%"
+  months_6_12: win_rate: "65-70%"
+  months_12p:  win_rate: "70-73%+"
+
+trade_freq:
+  daily:   "0-5"
+  weekly:  "5-25"
+  monthly: "50-100"
+
+trend_detection:
+  tf: 4h
+  indicators:
+    ema_fast: 20
+    ema_slow: 50
+  rules:
+    uptrend:
+      - price > ema20 > ema50
+      - ema20_slope_last_5_candles: up
+      action: "only_long"
+    downtrend:
+      - price < ema20 < ema50
+      - ema20_slope_last_5_candles: down
+      action: "only_short"
+    sideways:
+      require_at_least_n_of_3: 2
+      conds:
+        - ema_distance_pct < 0.5
+        - atr_ratio < 0.6
+        - range_8_candles_pct < 8
+      action: "skip_symbol"
+
+zone_detection:
+  tfs: [4h, 1h, 15m]
+  methods:
+    zigzag:
+      name: "ZigZag++ (DevLucem)"
+      params:
+        depth_base: 12
+        deviation_base: 5
+        backstep: 2
+      adapt:
+        if_atr_pct >= 10: depth=18
+        if_atr_pct ~ 5:   depth=12
+        if_atr_pct ~ 2:   depth=10
+    swing:
+      name: "Swing High/Low (Patternsmart)"
+      strength_base: 5  # check ±5 candles
+  lookback:
+    "4h": 720   # ~120 gün
+    "1h": 600   # ~3-4 hafta
+    "15m": 400  # ~4-5 gün
+  zone_rules:
+    min_touches: 2
+    max_thickness_pct: 1.5
+    merge_overlap_pct: 1.5
+  quality_score_0_10:
+    components:
+      touches:
+        2: 4
+        3: 3
+        4: 2
+        ">=5": 1
+      thickness_pct:
+        "<0.5": 3
+        "<1.0": 2
+        "<1.5": 1
+        "else": 0
+      recency_days:
+        "<7": 3
+        "<30": 2
+        ">=30": 1
+    threshold_start: 4
+    rl_adaptation:
+      phase_0_3m: "collect outcomes for quality 4-10"
+      phase_3_6m: "raise/lower threshold per-coin"
+      examples:
+        BTC: ">=5"
+        ETH: ">=6"
+        SOL: ">=7"
+  output:
+    - zones_sorted_by: ["quality_desc", "proximity_to_price"]
+
+gate_system_and_psych:
+  detect: [FOMO, revenge_trading]
+  gates: 4  # details kept in Part-2 (entry/exit)
+
+execution_flow:
+  step_1: "check 4h trend; skip sideways"
+  step_2: "run ZigZag; confirm with Swing; build zones"
+  step_3: "filter by min_touches/thickness; merge overlaps"
+  step_4: "score zones; keep quality>=threshold"
+  step_5: "sort; pass to PA Entry (next doc)"
+  outputs: ["valid_zone_list", "context_for_entry"]
