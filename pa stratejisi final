@@ -1,0 +1,191 @@
+# ================================================================
+# 📘 PA + RL TRADING SYSTEM – 2025 FINAL SPEC
+# ================================================================
+# Yapı: 3 Agent (CoinSelection, RLTradingBot, RiskMoneyMgmt)
+# ---------------------------------------------------------------
+# 1–3 → Price Action (Trend-Zone-Entry)
+# 4–6 → Reinforcement Learning (Öğrenme ve Davranış)
+# 7 → Emotional Control (Anti-Revenge, Anti-FOMO)
+# 8 → Learning & Integration (Continuous Loop)
+# 9 → System Resilience & Monitoring Layer (Kurtarma + İzleme)
+# ================================================================
+
+# 🧩 PARÇA 1 – Trend & Zone Detection
+part_1_trend_zone:
+  purpose: "Piyasa yönünü ve işlem bölgelerini belirlemek"
+  scope: "Price Action analiz motoru"
+  architecture: ["CoinSelection", "RLTradingBot", "RiskMoneyMgmt"]
+  trend_detection:
+    method: ["EMA20", "EMA50"]
+    timeframe: "4H"
+    filter: {sideways: "ATR & EMA mesafe", range_pct: true}
+  zone_detection:
+    methods: ["ZigZag++", "Swing High/Low"]
+    timeframes: ["4H", "1H", "15M"]
+    zone_quality: "0–10 arası"
+    criteria: ["merge", "overlap", "touch_count"]
+    rl_adaptation: "thresholds coin bazlı optimize edilir"
+  execution_flow: "Trend → Zone → Filter → Entry Hazırlığı"
+
+# 🧩 PARÇA 2 – Entry & Exit System
+part_2_entry_exit:
+  purpose: "Doğru zamanda doğru seviyeden giriş-çıkış"
+  scope: "15M mikro PA"
+  entry_system:
+    multi_timeframe_sync: ["4H", "1H", "15M"]
+  choch_detection:
+    definition: "Change of Character"
+    signal: ["long_break", "short_break"]
+  fibonacci_retracement:
+    levels: [0.705, 0.618]
+  stop_loss:
+    buffer: "swing wick + 0.5%"
+  take_profit:
+    structure: {TP1: "50%", TP2: "30%", TP3: "20%"}
+  trailing_stop: "ChoCH exit + dinamik SL"
+
+# 🧩 PARÇA 3 – Re-entry, Adaptive Parameters & Liquidity
+part_3_reentry_adaptive:
+  purpose: "Stop sonrası yeniden giriş ve adaptif parametre ayarı"
+  re_entry:
+    rules: ["ChoCH + yeni Fib + 2 mum bekleme", "risk yarıya indirme"]
+  adaptive_parameters:
+    base: ["ATR", "timeframe"]
+    optimize: ["ZigZag", "Swing"]
+  liquidity_detection:
+    logic: ["wick sweep", "stop cluster temizliği"]
+  zone_memory:
+    tracking: ["zone geçmiş performansı", "blacklist", "confidence_score"]
+
+# 🧩 PARÇA 4 – RL Architecture & Setup Scoring
+part_4_rl_architecture:
+  purpose: "RL motorunun karar yapısı ve setup puanlaması"
+  rl_architecture:
+    algo: "PPO (Proximal Policy Optimization)"
+    state_features: 40
+    action_space: 4
+    reward_function: "Davranış + sonuç bazlı"
+  setup_quality_scoring:
+    components: ["Zone", "ChoCH", "Volume", "Fibonacci", "Market", "Timing"]
+    range: "0–100"
+  gate_system:
+    gates:
+      G1: "PA kontrol"
+      G2: "Setup score ≥ 40"
+      G3: "Risk limitleri"
+      G4: "Psikolojik filtreler"
+
+# 🧩 PARÇA 5 – Risk Management & Correlation Control
+part_5_risk_management:
+  purpose: "Sermaye koruması ve korelasyon yönetimi"
+  position_sizing:
+    formula: "Risk% = (Risk_Amount / Balance)"
+  adaptive_multipliers:
+    factors: ["Setup quality", "Win rate", "Streak", "Volatility", "Drawdown"]
+  risk_limits:
+    limits: {per_trade: "2%", daily: "6%", portfolio: "10%"}
+  correlation_control:
+    matrix: ["BTC", "ETH", "SOL"]
+    adjustment: "Risk azaltma katsayısı korelasyon bazlı"
+
+# 🧩 PARÇA 6 – Reward System & Anti-FOMO
+part_6_reward_anti_fomo:
+  purpose: "Bot davranışlarını ödül-ceza sistemiyle düzenlemek"
+  reward_system:
+    good_decision: "+reward"
+    bad_decision: "-penalty"
+    range: [-200, +200]
+  bonuses_penalties:
+    bonus: ["sabır", "doğru SL", "kademeli TP"]
+    penalty: ["FOMO", "revenge", "overtrading"]
+  anti_fomo_system:
+    rules: ["setup eksikliği", "fiyat kovalamak", "fib yok", "hızlı giriş", "vol spike", "sosyal FOMO"]
+    detection: "FOMO ≥ 50 → trade engellenir"
+
+# 🧩 PARÇA 7 – Anti-Revenge & Overtrading System
+part_7_anti_revenge:
+  purpose: "Duygusal ticareti ve aşırı işlemleri engellemek"
+  anti_revenge_system:
+    cooldown: "Loss sonrası 15m–2h"
+    revenge_detection: "Yeni trade bloklanır"
+  anti_overtrading_system:
+    limits: ["Saatlik trade sınırı", "Kalite düşüşü", "Churning tespiti"]
+  emotional_state_simulation:
+    variables: ["Confidence", "Stress", "Patience"]
+    risk_adjustment: "Duygusal durum bazlı risk azalışı"
+
+# 🧩 PARÇA 8 – Learning & Integration
+part_8_learning_loop:
+  purpose: "Tüm sistemi öğrenen döngüde birleştirmek"
+  continuous_learning_loop:
+    stages: ["data", "training", "analysis", "optimization"]
+  performance_tracking:
+    metrics: ["daily win_rate", "avg_rr", "sharpe", "dd"]
+  adaptive_threshold_learning:
+    logic: "win rate’e göre threshold auto-update"
+  full_system_architecture:
+    flow: "CoinSelection → RLTradingBot → RiskManager → loop"
+  learning_phases:
+    phase_1: "0–3 ay → Öğrenme"
+    phase_2: "3–6 ay → Optimize"
+    phase_3: "6–12 ay → Ustalaşma"
+    phase_4: "12+ → Özerklik"
+
+# 🧩 PARÇA 9 – System Resilience & Monitoring Layer (FINAL)
+part_9_system_resilience:
+  purpose: "Elektrik/internet kesintisi, veri kaybı ve insan hatasına karşı koruma"
+  autosave:
+    time_based: "15m checkpoint"
+    event_based: ["trade_open", "trade_close", "tp/sl_hit", "error_detected", "new_zone"]
+    smart_save: "Değişiklik varsa kaydet"
+  recovery:
+    on_startup: ["state_check", "integrity_validate", "load_positions", "restore_cooldowns"]
+    flow: ["Normal shutdown", "Power loss recovery", "Internet reconnection"]
+  safe_mode:
+    triggers: {drawdown_percent: ">10%", consecutive_losses: 3}
+    actions: ["risk %0.5’e düşür", "paper mode", "Telegram uyarı"]
+  indicator_learning_system:
+    strategy: "ZigZag++ + Swing hybrid"
+    phases:
+      phase_1: "Dual Confirmation (0–3 ay)"
+      phase_2: "Parallel Testing (3–6 ay)"
+      phase_3: "Coin-Specific Adaptive (6+ ay)"
+    implementation: "ZoneDetectionManager"
+  monitoring_and_logging:
+    database: "SQLite (data/trades.db)"
+    cli_dashboard: "Rich terminal UI"
+    telegram:
+      notifications: ["trade_open", "trade_close", "daily_summary", "safe_mode"]
+      commands: ["/durum", "/pozisyonlar", "/bugun", "/hafta", "/duraklat", "/devam", "/export"]
+    log_files: "logs/bot.log (INFO+)"
+  protections:
+    circuit_breaker: "5 ardışık API hatası → Safe mode"
+    slippage_control: "Limit orders (1dk dolmazsa iptal)"
+    partial_fill_guard: true
+    exchange_maintenance: true
+    volatility_guard: "Vol >10%/5dk → trade freeze"
+    delisting_check: true
+    balance_sync: "Hourly"
+  backups_and_reports:
+    local_backup: "daily → state_backup_YYYYMMDD/"
+    csv_export: "exports/trades_YYYY_MM_DD.csv"
+    email_reports: "removed"
+    telegram_summary: "daily + weekly"
+  shadow_mode:
+    enabled: true
+    retention: "30d"
+    logic: "Parallel test new params vs live"
+  health_monitor:
+    interval: "30m"
+    checks: ["internet", "api_latency", "exchange_status", "cpu", "memory"]
+    action: ["pause_trading_on_fail", "telegram_warn"]
+  summary:
+    - "Event-based autosave & safe recovery"
+    - "Adaptive ZigZag/Swing learning"
+    - "SQLite logging + CLI dashboard + Telegram control"
+    - "Circuit breaker + limit order safety"
+    - "Daily backup + shadow testing + full monitoring"
+
+# ================================================================
+# ✅ END OF MAIN SPEC
+# ================================================================
