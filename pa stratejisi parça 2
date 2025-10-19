@@ -1,0 +1,120 @@
+# Ana Strateji - 2. Parca
+# PA Entry & Exit kurallari (15M timeframe uzerinden)
+
+entry_system:
+  timeframe: 15m
+  structure:
+    step1: "Detect ChoCH (Change of Character)"
+    step2: "Wait for Fibonacci retracement for entry"
+  reason:
+    - "4H: trend"
+    - "1H: zone"
+    - "15M: precise entry timing"
+  advantages:
+    - "Hassas entry noktasi"
+    - "Dar stop loss"
+    - "Yuksek risk-reward"
+    - "False signal filtreleme"
+
+choch_detection:
+  definition: "Market yapisinin kirilmasi; trend degisimi"
+  long_rules:
+    - "Son Lower High belirlenir"
+    - "Yeni mum close LH'nin ustunde olmalidir (body close)"
+    - "Wick yeterli degil"
+  short_rules:
+    - "Son Higher Low belirlenir"
+    - "Yeni mum close HL'nin altinda olmalidir (body close)"
+    - "Wick yeterli degil"
+  minimum_strength: 0.4
+  strength_calc:
+    formula:
+      body_score: 0.4
+      volume_score: 0.6
+    description:
+      - "Body mesafesi ne kadar buyukse o kadar guclu"
+      - "Volume ortalamanin ustundeyse guc artar"
+    learning:
+      - "RL ilk 3 ay 0.4+ tum ChoCH'lari dener"
+      - "Basarili olan strength araligina gore threshold ayarlanir"
+
+fibonacci_retracement:
+  levels:
+    - 0.705  # Optimal Entry Point
+    - 0.618  # Golden Ratio
+  purpose:
+    - "Daha iyi entry fiyati"
+    - "Dar stop loss"
+    - "Yuksek RR"
+  logic:
+    long: "ChoCH sonrasi retracement bekle; fiyat 0.705 veya 0.618'e degdiginde entry"
+    short: "Ters yon icin ayni kurallar"
+  cancel_conditions:
+    - "Fiyat her iki seviyeyi de atlarsa setup iptal"
+    - "Retracement olmazsa setup iptal"
+
+stop_loss:
+  rule: "Son swing wick + %0.5 buffer"
+  formula:
+    long: "SL = wick * (1 - 0.005)"
+    short: "SL = wick * (1 + 0.005)"
+  reason:
+    - "Wick'e dokunup stop olma riskini azaltir"
+    - "Gercek kirilimda yine devreye girer"
+  examples:
+    long: "Entry $50,150, swing low $49,800, SL $49,551"
+    short: "Entry $49,850, swing high $50,200, SL $50,451"
+
+take_profit:
+  distribution:
+    tp1: {size: 0.5, rr: 1.5}
+    tp2: {size: 0.3, rr_min: 2.5}
+    tp3: {size: 0.2, rr_dynamic: true}
+  logic:
+    - "TP1: Kar garanti, risk sifirlanir (SL -> breakeven)"
+    - "TP2: Likidite/zone hedefi"
+    - "TP3: ChoCH sinyali veya trail stop ile cikis"
+  example:
+    entry: 50150
+    stop: 49551
+    tp1: 51048
+    tp2: 51500
+    rr_avg: "1.8–2.2"
+
+trailing_stop:
+  buffer: 0.005
+  logic:
+    - "Yeni swing olustukca SL guncellenir"
+    - "Fiyat %3 kar yaparsa SL entry + %1.5'e ceker"
+  dynamic_exit:
+    - "Karsi yon ChoCH tespit edilirse kalan 20% kapat"
+
+complete_trade_flow:
+  example_long:
+    timeframe: "4H trend → 1H zone → 15M entry"
+    trend: "Uptrend (EMA20>EMA50)"
+    zone: "$50,000–$50,100 / quality 8/10"
+    choch:
+      strength: 0.86
+      confirmed: true
+    fibonacci:
+      entry_price: 49962
+      stop_loss: 49551
+    tps:
+      tp1: 50579
+      tp2: 51200
+      tp3: "Dynamic"
+    results:
+      total_profit_usd: 514
+      total_risk_usd: 200
+      rr_final: 2.57
+      roi_percent: 5.1
+      win: true
+
+summary:
+  - "ChoCH detection: market structure break & strength hesaplama"
+  - "Fibonacci retracement: 0.705 ve 0.618 entry seviyeleri"
+  - "Stop loss: swing wick + %0.5 buffer"
+  - "Take profit: kademeli cikis 50/30/20"
+  - "Trail stop & ChoCH exit"
+  - "RL learning icin veri toplama mekanizmasi"
