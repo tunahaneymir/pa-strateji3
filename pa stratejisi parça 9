@@ -1,29 +1,72 @@
-# Ana Strateji - 9. Parca
-# System Resilience & Notification Layer
-# Amaç: Elektrik/internet kesintilerine, veri kaybına ve insan hatasına karşı sistemin sürekliliğini sağlamak.
-# Ayrıca Telegram bildirimleri, otomatik kayıt ve adaptive indikatör seçimi içerir.
+# Ana Strateji - 9. Parca (FINAL)
+# System Resilience, Indicator Learning, Monitoring & Notifications
 
 system_resilience:
   autosave:
     enabled: true
-    frequency: "1h"
-    save_if_changed: true
-    save_path: "autosave/latest_state.json"
-    include:
-      - open_positions
-      - zone_memory
-      - rl_model
-      - experience_buffer
-      - adaptive_parameters
-    restore_on_restart: true
-    safe_recovery:
-      trigger_if_inactive_hours: 3
-      start_mode: "safe"       # Only analysis, no live trades
-      message: "System restored in safe mode after long downtime"
-    example:
-      last_autosave: "2025-10-19 17:00"
-      changes_detected: true
-      status: "State saved successfully"
+    time_based:
+      checkpoint_every: "15m"      # her 15 dakikada bir
+      save_if_changed: true
+    event_based:
+      triggers:                    # olay tabanli acil kayit
+        - new_trade_opened
+        - trade_closed
+        - stop_or_tp_hit
+        - new_zone_detected
+        - choch_detected
+        - parameter_update
+        - model_update
+        - significant_pnl
+        - cooldown_activated
+        - daily_limit_hit
+        - error_detected
+      action: "IMMEDIATE_SAVE"
+    smart_save:
+      check_for_changes: true
+      only_save_if_different: true
+      compress_old_data: true
+      philosophy: "Yalnizca degisiklik varsa kaydet"
+    critical_cases:
+      drawdown_5plus: "SAVE_NOW"
+      internet_or_power_loss: "RESUME_FROM_LAST_SNAPSHOT"
+
+  state_persistence:
+    data_files:
+      bot_state: "state/bot_state.json"
+      zone_memory: "state/zone_memory.json"
+      rl_model: "models/rl_model.pkl"
+      experience_buffer: "models/experience.pkl"
+      trade_history: "data/trades.db"      # SQLite
+      log_file: "logs/bot.log"
+      hourly_backup_dir: "state/backups/hourly/"
+      daily_backup_dir: "state/backups/daily/"
+      model_checkpoints_dir: "models/checkpoints/"
+    saved_state_schema:
+      bot_state: {confidence: float, stress: float, patience: float, last_update: iso8601}
+      open_positions:
+        - {trade_id: str, coin: str, direction: [LONG, SHORT], entry: float, position_size: float,
+           stop_loss: float, tp1: float|null, tp2: float|null, tp3: float|null,
+           entry_time: iso8601, status: [ACTIVE, CLOSED, PARTIAL]}
+      cooldowns: {"<SYMBOL>": {active: bool, until: iso8601|null, level: str|null}}
+      daily_tracking: {date: yyyy-mm-dd, trades_count: int, risk_used: float, losses_count: int, coin_trades: {"<SYMBOL>": int}}
+      model_state: {version: str, last_training: iso8601, episodes: int, model_path: str}
+      performance: {total_trades: int, win_rate: float, total_pnl: float, current_drawdown: float}
+      zone_memory: {"<COIN_TF_ZONE>": {quality: int, last_trade: iso8601, win_rate: float, attempts: int}}
+
+  recovery:
+    on_startup:
+      check_state_file: true
+      validate_integrity: true
+      load_open_positions: true
+      restore_cooldowns: true
+      continue_from_last_point: true
+    recovery_flow:
+      - step: "Load State File"         # yoksa saatlik yedekten don
+      - step: "Restore Open Positions"  # TP/SL ve trail devam
+      - step: "Restore Cooldowns"       # coin bazli kisitlar
+      - step: "Check Daily Limits"      # gunluk risk/limit
+      - step: "Load RL Model"           # son checkpoint
+      - step: "Resume Normal Operation"
 
   versioning:
     auto_version_on_changes: true
@@ -34,137 +77,144 @@ system_resilience:
 
   safe_mode:
     enabled: true
-    triggers:
-      drawdown_percent: ">10"
-      consecutive_losses: 3
-    actions:
-      - "Switch to paper trading mode"
-      - "Reduce risk to 0.5%"
-      - "Send Telegram warning"
-    resume_condition: "Win streak >=2 or drawdown <5%"
-    example:
-      status: "Safe Mode Active"
-      reason: "Drawdown >10%"
-      next_check: "in 2h"
+    triggers: {drawdown_percent: ">10", consecutive_losses: 3}
+    actions: ["paper_trading", "risk:=0.5%", "telegram_warn"]
+    resume_condition: "win_streak>=2 OR drawdown<5%"
 
-  logging:
-    trade_log: "logs/trade_log.csv"
-    daily_summary: "logs/daily_summary.json"
-    monthly_dashboard: "logs/performance_dashboard.html"
+indicator_learning_system:
+  strategy_overview: "DUAL CONFIRMATION"   # ZigZag++ primary, Swing HL confirmation
+  usage_mode:
+    zigzag: {role: "Primary", parameters: {depth: 12, deviation: 5}}
+    swing:  {role: "Confirmation", parameters: {strength: 5}}
+    intersection_rule: "Zone = ZigZag AND Swing"
+  logic_flow: |
+    Step1: ZigZag++ (Depth 12, Dev 5) candidate swings
+    Step2: Swing HL (Strength 5) confirm
+    Step3: Intersection -> VALID zone; else REJECT
+  dual_indicator_learning:
+    approaches:
+      parallel_testing:
+        description: "3 yol ayni anda: ZigZag only, Swing only, Both"
+        evaluation: "coin/timeframe bazli WR, avgRR ile karsilastir"
+        decision_rule: "en yuksek basari oranina sahip yontemi sec"
+      parameter_optimization:
+        grid:
+          zigzag_depth: [8, 10, 12, 15, 18, 20]
+          zigzag_deviation: [3, 5, 7, 10]
+          swing_strength: [3, 5, 7, 10]
+        note: "Swing dogrulayici kalirken ZigZag parametreleri optimize edilir"
+    recommended_hybrid_plan:
+      phase_0_3m: "DUAL (Both) ile guvenli baslangic, veri topla"
+      phase_3_6m: "3 yontemi paralel test et, coin-bazli secim"
+      phase_6m_plus: "Coin/timeframe bazli otomatik en iyiyi kullan, dinamik degistir"
+
+  implementation_class:
+    name: "ZoneDetectionManager"
+    location: "src/modules/zone_detection_manager.py"
+    core_methods:
+      __init__: {methods: ["zigzag_only", "swing_only", "both"], coin_preferences: "dict (RL ogretilir)"}
+      detect_zones:
+        phase_1: "0-3 ay -> detect_with_both()"
+        phase_2: "3-6 ay -> tum yontemleri dondur {zigzag,swing,both,testing_mode:true}"
+        phase_3: "6+ ay -> coin tercihi: zigzag_only | swing_only | both"
+    pseudocode: |
+      if training_phase==1: return both
+      elif training_phase==2: return {zigzag,swing,both,testing_mode:true}
+      else: use coin_preferences.get(coin,"both")
+
+monitoring_and_logging_system:
+  database_layer:
+    type: "SQLite"
+    file: "data/trades.db"
+    generation: "trade close aninda insert"
     content:
-      - timestamp
-      - coin
-      - direction
-      - entry
-      - stop
-      - tp_levels
-      - rr
-      - pnl
-      - reward_score
-      - behavioral_flags
-    compression: "gzip after 7 days"
-    cleanup: "rotate after 30 days"
+      trade_details: [trade_id, datetime, coin, timeframe, direction, entry, exit, stop, tp1, tp2, tp3,
+                      size, risk_pct, risk_usd, pnl_usd, pnl_pct, duration_min, exit_reason]
+      setup_metrics: [setup_score, zone_quality, choch_strength, volume_ratio, fib_level, market_regime, outcome_score]
+      behavioral_flags: [fomo_detected, revenge_trade, reentry_attempt, cooldown_active, emotional_state, risk_multiplier]
+    exports:
+      daily_csv: "exports/trades_YYYY_MM_DD.csv"
+      telegram_command: "/export"
+      retention_days: 7
 
+  logging_layer:
+    file: "logs/bot.log"
+    levels: ["INFO","WARNING","ERROR","CRITICAL"]   # DEBUG kapali (prod)
+    rotation: "daily"
+    retention_days: 7
+
+  cli_dashboard:
+    enabled: true
+    library: "rich"
+    purpose: "web yerine lokal terminal UI"
+    sample_view: "status/positions/daily_PnL/stress/cooldowns"
+
+  telegram_layer:
+    enabled: true
+    bot_token: "YOUR_TELEGRAM_BOT_TOKEN"
+    chat_id: "YOUR_CHAT_ID"
+    levels: [CRITICAL, IMPORTANT, SUMMARY, INFO]
+    notifications:
+      CRITICAL: [trade_open, trade_close, stop_hit, tp_hit, daily_limit_hit, system_error, drawdown_5plus]
+      IMPORTANT: [new_zone, choch, fomo_blocked, revenge_blocked, reentry_opportunity, gate_rejected]
+      SUMMARY: [daily_eod, weekly_perf, monthly_report]
+      INFO: [parameter_change, rl_update, zone_memory_update]
+    commands: ["/durum","/pozisyonlar","/bugun","/hafta","/duraklat","/devam","/risk","/export"]
+    quiet_hours: "00:00-08:00 (critical only)"
+    grouping: "kucuk bildirimleri grupla"
+
+protections_and_ops:
+  api_error_handling:
+    pattern: "circuit_breaker"
+    rule: "5 ardısik API hatasi -> safe_mode + stop_new_trades + telegram_warn"
+    retry_policy: {retries: 3, backoff: "exponential"}
+  slippage_control:
+    default: "LIMIT orders"
+    timeout_cancel: "1m"
+    emergency_market_mode: "market + position_size_adjust"
+  partial_fill_guard:
+    order_types: [FOK, IOC]
+    on_partial: ["recalc_position_size","update_risk","adjust_tp_sl"]
+  exchange_maintenance:
+    follow_status_api: true
+    pre_maintenance: ["do_not_open_new_trades","preserve_open_positions","telegram_warn"]
+  network_simplification:
+    library: "ccxt handles reconnect/timeout/rate_limit"
+    internal: "try/catch + 3x retry"
+  balance_monitor:
+    on_every_trade: true
+    hourly_sync: true
+    alarm_if_diff_gt_pct: 1.0
+  volatility_guard:
+    extreme_move: {lookback: "5m", threshold_pct: 10, block_new_trades: "30m", open_trades_actions: ["tighten_sl","closer_tp"]}
+  delisting_check:
+    enabled: true
+    action: ["close_positions_on_coin","blacklist_coin"]
+  performance_degradation_detector:
+    rules: {wr_last_50_lt: 0.50, three_loss_streaks_30d_ge: 3, dd_gt_pct: 15, profit_factor_lt: 1.2}
+    actions: ["risk:=1%","setup_threshold:+20","trade_only_best_zones","trigger_rl_retrain","review_after_100_trades"]
+
+reporting_and_backups:
   performance_journal:
     enabled: true
-    auto_generate_html: true
     frequency: "daily"
-    metrics:
-      - total_trades
-      - win_rate
-      - avg_rr
-      - sharpe_ratio
-      - daily_pnl_percent
-      - behavioral_blocks
-    graph_elements:
-      - cumulative_pnl_curve
-      - win_rate_per_coin
-      - fomo_vs_patience_chart
-    save_path: "reports/daily_dashboard.html"
-
-telegram_notifications:
-  enabled: true
-  bot_token: "YOUR_TELEGRAM_BOT_TOKEN"
-  chat_id: "YOUR_CHAT_ID"
-  events:
-    - trade_open
-    - trade_close
-    - autosave_complete
-    - warning
-    - rl_training_update
-    - cooldown_triggered
-    - safe_mode_activated
-  message_templates:
-    trade_open: "🚀 New Trade: {coin} | Entry: {entry} | SL: {stop} | TP1: {tp1} | RR: {rr}"
-    trade_close: "✅ Trade Closed: {coin} | Result: {pnl}% | Reward: {reward_score}"
-    autosave_complete: "💾 State saved at {timestamp}"
-    warning: "⚠️ {reason}"
-    rl_training_update: "🧠 RL model retrained ({samples} samples)"
-    safe_mode_activated: "🛑 Safe mode activated due to {trigger}"
-
-indicator_selection:
-  strategy: "Adaptive Auto-Learning"
-  description: "Bot uses both ZigZag++ and Swing indicators, learns which performs better per coin/timeframe."
-  logic:
-    - "Run ZigZag++ and Swing High/Low in parallel"
-    - "Collect win_rate, avg_rr, and quality per coin/timeframe"
-    - "After 100+ trades, prefer the better-performing indicator"
-    - "Update preferences weekly"
-  storage: "indicators/indicator_performance.json"
-  example:
-    BTC_1H: {zigzag_wr: 0.68, swing_wr: 0.61, chosen: "ZigZag++"}
-    SOL_15M: {zigzag_wr: 0.59, swing_wr: 0.67, chosen: "Swing"}
-
-system_health_monitor:
-  enabled: true
-  check_interval: "30m"
-  checks:
-    - internet_connection
-    - api_latency
-    - binance_status
-    - cpu_usage
-    - memory_usage
-  actions:
-    if_api_fail: "pause_trading + notify"
-    if_latency_high: "reduce_frequency"
-    if_resource_overload: "pause_rl_training"
-  example:
-    last_check: "2025-10-19 17:30"
-    api_latency: "58ms"
-    internet: "OK"
-    result: "All systems healthy ✅"
-
-shadow_mode:
-  enabled: true
-  purpose: "Test new parameters on live data without executing real trades"
-  behavior:
-    - "Run parallel simulated trades (shadow agent)"
-    - "Compare performance vs main agent"
-    - "Store results for optimization"
-  retention: "30d"
-  sample_result:
-    shadow_trades: 210
-    performance_diff: "+4.5% vs live agent"
-    decision: "Keep new ZigZag params"
-
-backup_policies:
-  rl_model_backup:
-    path: "backups/models/"
-    frequency: "weekly"
-    retention: "8 weeks"
-  logs_backup:
-    path: "backups/logs/"
-    frequency: "daily"
-    retention: "14 days"
-  emergency_restore:
-    if_corruption_detected: "use_last_valid_backup"
+    metrics: [total_trades, win_rate, avg_rr, sharpe, daily_pnl_pct, behavioral_blocks]
+    graphs: [cumulative_pnl, win_rate_per_coin, fomo_vs_patience]
+    save_path: "reports/daily_dashboard.html"   # opsiyonel; CLI ana
+  local_backup:
+    daily:
+      state_dir: "state/ -> state_backup_YYYYMMDD/"
+      trades_db: "data/trades.db -> trades_backup_YYYYMMDD.db"
+      retention_days: 7
+    cloud_backup: "disabled (simplified)"
+  email_reports: "removed (Telegram SUMMARY yeterli)"
 
 summary:
-  - "Hourly autosave protects from crashes and outages"
-  - "Safe Mode reduces risk and pauses trades on large drawdowns"
-  - "Trade logs, summaries, and dashboards ensure transparency"
-  - "Telegram notifications replace email alerts"
-  - "Adaptive indicator selection improves accuracy per coin"
-  - "Health monitor ensures uptime and stability"
-  - "Shadow mode enables safe live testing"
-  - "Weekly backups preserve models and history"
+  - "Resilience: 15m checkpoint + event-based autosave; cold-start recovery"
+  - "State persistence: bot_state / zone_memory / rl_model / trades.db ayrik yapida"
+  - "Indicator learning: Dual confirmation + parallel test + coin-specific selection"
+  - "Implementation: ZoneDetectionManager ile faz bazli yurutme"
+  - "Monitoring: SQLite + CSV export + CLI dashboard + Telegram (komutlar)"
+  - "Protections: circuit breaker, limit orders, partial-fill, maintenance, volatility guard"
+  - "Ops: ccxt network basitlestirme, balance sync, delist kontrolu"
+  - "Backups/Reports: local daily backups + Telegram summaries"
